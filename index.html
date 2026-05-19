@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Film Industry Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ede8ff; --header-bg: #b0a3e8; --dark: #141414; --muted: #555;
+  --white: #ffffff; --bw: 1.5px solid #141414;
+  --c-funding: #e2f455; --c-festival: #5dd4d4; --c-market: #dbd4ff;
+  --c-bc: #ffd166; --c-intl: #ff9eb5;
+  --font-d: 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  --font-m: 'Space Mono', 'Courier New', monospace;
+  --r: 5px; --rp: 30px;
+}
+body { font-family: var(--font-m); background: var(--bg); color: var(--dark); min-height: 100vh; font-size: 13px; }
+
+/* ── HEADER ── */
+header { background: var(--header-bg); border-bottom: var(--bw); padding: 14px 20px 10px; position: sticky; top: 0; z-index: 100; }
+.header-row1 { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.site-title { font-family: var(--font-d); font-size: 36px; line-height: 0.9; letter-spacing: 1px; }
+.year-nav { display: flex; align-items: center; gap: 6px; }
+.year-btn { font-family: var(--font-d); font-size: 22px; width: 30px; height: 30px; border: var(--bw); border-radius: var(--r); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .1s; }
+.year-btn:hover { background: var(--c-funding); }
+.year-display { font-family: var(--font-d); font-size: 28px; min-width: 64px; text-align: center; }
+.hdr-tools { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.tool-btn { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 4px 12px; border: var(--bw); border-radius: var(--rp); background: var(--dark); color: var(--white); cursor: pointer; transition: background .1s; }
+.tool-btn:hover { background: #333; }
+.tool-btn.add-btn { background: var(--c-funding); color: var(--dark); }
+.tool-btn.add-btn:hover { background: #c8d83a; }
+.header-row2 { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.filter-section { display: flex; align-items: center; gap: 4px; }
+.filter-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: .6; }
+.hdr-div { width: 1px; height: 16px; background: rgba(20,20,20,.3); margin: 0 3px; align-self: center; }
+.pill-btn { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 3px 11px; border: var(--bw); border-radius: var(--rp); background: transparent; cursor: pointer; transition: background .1s; }
+.pill-btn:hover { background: rgba(20,20,20,.08); }
+.pill-btn.active { background: var(--dark); color: var(--white); }
+.pill-btn.active[data-value="funding"]       { background: var(--c-funding);  color: var(--dark); }
+.pill-btn.active[data-value="festival"]      { background: var(--c-festival); color: var(--dark); }
+.pill-btn.active[data-value="market"]        { background: var(--c-market);   color: var(--dark); }
+.pill-btn.active[data-value="documentary"]   { background: var(--c-funding);  color: var(--dark); }
+.pill-btn.active[data-value="scripted"]      { background: #c3b6ff;           color: var(--dark); }
+.pill-btn.active[data-value="both-fmt"]      { background: var(--c-festival); color: var(--dark); }
+.pill-btn.active[data-value="bc"]            { background: var(--c-bc);       color: var(--dark); }
+.pill-btn.active[data-value="international"] { background: var(--c-intl);     color: var(--dark); }
+
+/* ── LEGEND ── */
+.legend-bar { background: var(--white); border-bottom: var(--bw); padding: 6px 20px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 9px; }
+.leg-sq { width: 10px; height: 10px; border: 1px solid var(--dark); border-radius: 2px; flex-shrink: 0; }
+.leg-sq.funding { background: var(--c-funding); } .leg-sq.festival { background: var(--c-festival); } .leg-sq.market { background: var(--c-market); }
+.leg-sep { font-size: 9px; color: #aaa; }
+
+/* ── LOADING / EMPTY STATES ── */
+#loadingOverlay { display: none; position: fixed; inset: 0; background: rgba(237,232,255,.8); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+#loadingOverlay.show { display: flex; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--header-bg); border-top-color: var(--dark); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-family: var(--font-d); font-size: 22px; letter-spacing: 1px; }
+
+.empty-state { grid-column: 1/-1; border: var(--bw); border-radius: var(--r); background: var(--white); padding: 40px 30px; text-align: center; }
+.empty-state h2 { font-family: var(--font-d); font-size: 28px; letter-spacing: 1px; margin-bottom: 8px; }
+.empty-state p { font-size: 11px; color: var(--muted); margin-bottom: 20px; line-height: 1.7; }
+.seed-btn { font-family: var(--font-m); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 10px 24px; border: var(--bw); border-radius: var(--rp); background: var(--c-funding); color: var(--dark); cursor: pointer; font-weight: 700; transition: background .1s; }
+.seed-btn:hover { background: #c8d83a; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--dark); color: var(--white); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 16px; border-radius: var(--rp); z-index: 600; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { background: #c0392b; }
+
+/* ── MAIN ── */
+main { padding: 16px 20px 60px; }
+.year-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+@media(max-width:1100px){.year-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:780px) {.year-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px) {.year-grid{grid-template-columns:1fr}}
+
+/* ── ROLLING ── */
+.rolling-section { margin-top: 16px; border: var(--bw); border-radius: var(--r); overflow: hidden; }
+.rolling-header { background: var(--dark); color: var(--white); font-family: var(--font-d); font-size: 22px; letter-spacing: 1px; padding: 6px 12px 4px; display: flex; align-items: baseline; justify-content: space-between; }
+.rolling-header .rolling-sub { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; opacity: .6; font-style: italic; }
+.rolling-grid { background: var(--white); padding: 10px; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+@media(max-width:1100px){.rolling-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:780px) {.rolling-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px) {.rolling-grid{grid-template-columns:1fr}}
+
+/* ── MONTH CARD ── */
+.month-card { background: var(--white); border: var(--bw); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; }
+.month-header { background: var(--header-bg); border-bottom: var(--bw); padding: 4px 10px 2px; display: flex; align-items: baseline; justify-content: space-between; }
+.month-name { font-family: var(--font-d); font-size: 24px; letter-spacing: 1px; line-height: 1.1; }
+.month-count { font-size: 9px; opacity: .6; }
+.month-events { padding: 8px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.month-empty { font-size: 10px; color: var(--muted); padding: 8px 4px; font-style: italic; }
+
+/* ── CHIP ── */
+.chip { border: var(--bw); border-radius: var(--r); padding: 6px 8px; cursor: pointer; transition: transform .1s, box-shadow .1s; position: relative; }
+.chip:hover, .chip.active { transform: translate(-1px,-1px); box-shadow: 2px 2px 0 var(--dark); }
+.chip.funding  { background: var(--c-funding); }
+.chip.festival { background: var(--c-festival); }
+.chip.market   { background: var(--c-market); }
+.chip.custom::after { content: '✦'; position: absolute; top: 3px; right: 5px; font-size: 7px; opacity: .4; }
+.chip-phase { font-size: 7px; text-transform: uppercase; letter-spacing: 1px; opacity: .6; margin-bottom: 1px; }
+.chip-phase.is-deadline { opacity: 1; font-weight: 700; }
+.chip-name { font-family: var(--font-d); font-size: 14px; letter-spacing: .3px; line-height: 1.15; }
+.chip-meta { display: flex; align-items: center; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.chip-date { font-size: 8px; opacity: .7; }
+.cpill { font-size: 7px; text-transform: uppercase; letter-spacing: .3px; padding: 1px 6px; border-radius: var(--rp); border: 1px solid rgba(20,20,20,.3); background: var(--white); line-height: 1.6; }
+.cpill.bc   { background: var(--c-bc); } .cpill.intl { background: var(--c-intl); }
+.cpill.approx { opacity: .5; border-style: dashed; }
+
+/* ── DETAIL PANEL ── */
+#detailPanel { position: fixed; right: 0; top: 0; bottom: 0; width: 370px; background: var(--white); border-left: var(--bw); z-index: 200; transform: translateX(100%); transition: transform .2s ease; overflow-y: auto; display: flex; flex-direction: column; }
+#detailPanel.open { transform: translateX(0); }
+#overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,20,.4); z-index: 190; }
+#overlay.show { display: block; }
+.dp-header { background: var(--header-bg); border-bottom: var(--bw); padding: 12px 14px 10px; position: relative; }
+.dp-type-stripe { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; opacity: .65; margin-bottom: 3px; }
+.dp-name { font-family: var(--font-d); font-size: 26px; line-height: 1; letter-spacing: .5px; padding-right: 34px; }
+.dp-org  { font-size: 9px; text-transform: uppercase; letter-spacing: .5px; opacity: .65; margin-top: 4px; }
+.dp-close { position: absolute; top: 10px; right: 10px; font-family: var(--font-d); font-size: 18px; width: 26px; height: 26px; border: var(--bw); border-radius: var(--r); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .1s; }
+.dp-close:hover { background: var(--c-funding); }
+.dp-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.dp-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+.dbadge { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; padding: 2px 10px; border-radius: var(--rp); border: var(--bw); line-height: 1.6; }
+.dbadge.funding  { background: var(--c-funding); }  .dbadge.festival { background: var(--c-festival); }
+.dbadge.market   { background: var(--c-market); }   .dbadge.doc      { background: var(--c-funding); }
+.dbadge.scripted { background: #c3b6ff; }            .dbadge.both-fmt { background: var(--c-festival); }
+.dbadge.bc       { background: var(--c-bc); }        .dbadge.national { background: var(--bg); }
+.dbadge.intl     { background: var(--c-intl); }      .dbadge.approx   { background: transparent; border-style: dashed; opacity: .6; }
+.dp-dates-block { border: var(--bw); border-radius: var(--r); overflow: hidden; }
+.dp-dates-header { background: var(--dark); color: var(--white); font-size: 8px; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; }
+.dp-dates-body { padding: 8px 10px; }
+.dp-dates-val { font-family: var(--font-d); font-size: 18px; line-height: 1.3; }
+.dp-dates-sub { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.dp-desc { font-size: 12px; line-height: 1.65; font-family: -apple-system, sans-serif; }
+.dp-notes { border: var(--bw); border-radius: var(--r); overflow: hidden; }
+.dp-notes-header { background: var(--c-funding); font-size: 8px; text-transform: uppercase; letter-spacing: 1px; padding: 3px 10px; border-bottom: var(--bw); }
+.dp-notes-body { font-size: 10px; line-height: 1.6; padding: 7px 10px; font-family: -apple-system, sans-serif; }
+.dp-link { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: var(--bw); border-radius: var(--r); background: var(--dark); color: var(--white); text-decoration: none; font-size: 9px; transition: background .1s; }
+.dp-link:hover { background: #333; } .dp-link::after { content: '→'; font-size: 12px; }
+.dp-edit-btn { display: flex; align-items: center; justify-content: center; padding: 8px 12px; border: var(--bw); border-radius: var(--r); background: var(--c-funding); color: var(--dark); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; cursor: pointer; transition: background .1s; font-family: var(--font-m); }
+.dp-edit-btn:hover { background: #c8d83a; }
+
+/* ── EDIT MODAL ── */
+#editModal { display: none; position: fixed; inset: 0; z-index: 300; align-items: center; justify-content: center; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(20,20,20,.55); }
+.modal-box { position: relative; background: var(--white); border: var(--bw); border-radius: var(--r); width: 560px; max-width: calc(100vw - 32px); max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 4px 4px 0 var(--dark); display: flex; flex-direction: column; }
+.modal-header { background: var(--dark); color: var(--white); padding: 8px 14px 6px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.modal-title { font-family: var(--font-d); font-size: 26px; letter-spacing: 1px; line-height: 1; }
+.modal-close { background: transparent; border: 1px solid rgba(255,255,255,.4); color: var(--white); width: 24px; height: 24px; border-radius: var(--r); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: rgba(255,255,255,.15); }
+.modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row.trio   { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.single { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label.top { font-size: 8px; text-transform: uppercase; letter-spacing: .8px; opacity: .65; }
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group input[type="date"],
+.form-group textarea { font-family: var(--font-m); font-size: 11px; border: var(--bw); border-radius: var(--r); padding: 6px 8px; background: var(--white); width: 100%; outline: none; transition: border-color .1s; }
+.form-group input:focus, .form-group textarea:focus { border-color: var(--header-bg); box-shadow: 0 0 0 2px rgba(176,163,232,.3); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.radio-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.radio-pills label { cursor: pointer; }
+.radio-pills input { display: none; }
+.radio-pills .rpill { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; padding: 3px 11px; border: var(--bw); border-radius: var(--rp); background: transparent; transition: background .1s; display: inline-block; }
+.radio-pills input:checked + .rpill { background: var(--dark); color: var(--white); }
+.radio-pills input[value="funding"]:checked  + .rpill { background: var(--c-funding); color: var(--dark); }
+.radio-pills input[value="festival"]:checked + .rpill { background: var(--c-festival); color: var(--dark); }
+.radio-pills input[value="market"]:checked   + .rpill { background: var(--c-market); color: var(--dark); }
+.radio-pills input[value="documentary"]:checked + .rpill { background: var(--c-funding); color: var(--dark); }
+.radio-pills input[value="scripted"]:checked + .rpill { background: #c3b6ff; color: var(--dark); }
+.radio-pills input[value="both"]:checked     + .rpill { background: var(--c-festival); color: var(--dark); }
+.radio-pills input[value="rolling"]:checked  + .rpill { background: #333; color: var(--white); }
+.check-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.check-pills label { cursor: pointer; }
+.check-pills input { display: none; }
+.check-pills .cpill2 { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; padding: 3px 11px; border: var(--bw); border-radius: var(--rp); background: transparent; display: inline-block; transition: background .1s; }
+.check-pills input:checked + .cpill2 { background: var(--dark); color: var(--white); }
+.check-pills input[value="bc"]:checked            + .cpill2 { background: var(--c-bc);   color: var(--dark); }
+.check-pills input[value="national"]:checked      + .cpill2 { background: #ddd;          color: var(--dark); }
+.check-pills input[value="international"]:checked + .cpill2 { background: var(--c-intl); color: var(--dark); }
+.form-hint { font-size: 8px; opacity: .5; font-style: italic; text-transform: none; letter-spacing: 0; }
+.approx-row { display: flex; align-items: center; gap: 7px; font-size: 9px; }
+.approx-row input { width: 13px; height: 13px; cursor: pointer; }
+.modal-footer { padding: 12px 16px; border-top: var(--bw); display: flex; align-items: center; gap: 8px; background: var(--white); flex-shrink: 0; }
+.btn-delete { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 6px 14px; border: 1.5px solid #c0392b; border-radius: var(--rp); background: transparent; color: #c0392b; cursor: pointer; margin-right: auto; transition: background .1s; }
+.btn-delete:hover { background: #fdecea; }
+.btn-cancel { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 6px 14px; border: var(--bw); border-radius: var(--rp); background: transparent; cursor: pointer; }
+.btn-cancel:hover { background: var(--bg); }
+.btn-save { font-family: var(--font-m); font-size: 9px; text-transform: uppercase; letter-spacing: .5px; padding: 6px 16px; border: var(--bw); border-radius: var(--rp); background: var(--c-funding); cursor: pointer; font-weight: 700; transition: background .1s; }
+.btn-save:hover { background: #c8d83a; }
+.disabled-group { opacity: .4; pointer-events: none; }
+
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:#bbb;border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row1">
+    <div class="site-title">FILM INDUSTRY CALENDAR</div>
+    <div class="year-nav">
+      <button class="year-btn" onclick="changeYear(-1)">&#8249;</button>
+      <span class="year-display" id="yearDisplay">2026</span>
+      <button class="year-btn" onclick="changeYear(1)">&#8250;</button>
+    </div>
+    <div class="hdr-tools">
+      <button class="tool-btn add-btn" onclick="openAddModal()">+ Add Event</button>
+      <button class="tool-btn" onclick="exportJSON()">Export JSON</button>
+      <button class="tool-btn" onclick="importJSON()">Import JSON</button>
+      <button class="tool-btn" onclick="resetToDefaults()">Reset to Defaults</button>
+    </div>
+  </div>
+  <div class="header-row2">
+    <div class="filter-section">
+      <span class="filter-label">Type</span>
+      <button class="pill-btn active" data-filter="type" data-value="all">All</button>
+      <button class="pill-btn" data-filter="type" data-value="funding">Funding</button>
+      <button class="pill-btn" data-filter="type" data-value="festival">Festival</button>
+      <button class="pill-btn" data-filter="type" data-value="market">Market</button>
+    </div>
+    <div class="hdr-div"></div>
+    <div class="filter-section">
+      <span class="filter-label">Format</span>
+      <button class="pill-btn active" data-filter="format" data-value="all">All</button>
+      <button class="pill-btn" data-filter="format" data-value="documentary">Doc</button>
+      <button class="pill-btn" data-filter="format" data-value="scripted">Scripted</button>
+      <button class="pill-btn" data-filter="format" data-value="both-fmt">Both</button>
+    </div>
+    <div class="hdr-div"></div>
+    <div class="filter-section">
+      <span class="filter-label">Region</span>
+      <button class="pill-btn active" data-filter="region" data-value="all">All</button>
+      <button class="pill-btn" data-filter="region" data-value="bc">BC</button>
+      <button class="pill-btn" data-filter="region" data-value="national">National</button>
+      <button class="pill-btn" data-filter="region" data-value="international">International</button>
+    </div>
+  </div>
+</header>
+
+<div class="legend-bar">
+  <div class="leg"><div class="leg-sq funding"></div> Funding</div>
+  <div class="leg"><div class="leg-sq festival"></div> Festival / Submissions</div>
+  <div class="leg"><div class="leg-sq market"></div> Market / Pitch Forum</div>
+  <span class="leg-sep">|</span>
+  <div class="leg" style="font-style:italic;opacity:.6;">Bold = hard deadline &nbsp;·&nbsp; ~ = approximate</div>
+</div>
+
+<main>
+  <div class="year-grid" id="yearGrid"></div>
+  <div class="rolling-section" id="rollingSection" style="display:none">
+    <div class="rolling-header">
+      ROLLING / YEAR ROUND
+      <span class="rolling-sub">No fixed deadline — check websites for current intakes</span>
+    </div>
+    <div class="rolling-grid" id="rollingGrid"></div>
+  </div>
+</main>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading Calendar...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- OVERLAY -->
+<div id="overlay" onclick="closeDetail()"></div>
+
+<!-- DETAIL PANEL -->
+<div id="detailPanel">
+  <div class="dp-header">
+    <div class="dp-type-stripe" id="dpType"></div>
+    <div class="dp-name" id="dpName"></div>
+    <div class="dp-org"  id="dpOrg"></div>
+    <button class="dp-close" onclick="closeDetail()">&#215;</button>
+  </div>
+  <div class="dp-body">
+    <div class="dp-badges"     id="dpBadges"></div>
+    <div class="dp-dates-block" id="dpDates"></div>
+    <div class="dp-desc"       id="dpDesc"></div>
+    <div class="dp-notes"      id="dpNotes" style="display:none"></div>
+    <button class="dp-edit-btn" onclick="openEditModal()">Edit This Entry</button>
+    <a class="dp-link" id="dpLink" href="#" target="_blank" rel="noopener">Visit website</a>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal">
+  <div class="modal-backdrop" onclick="closeEditModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">ADD EVENT</div>
+      <button class="modal-close" onclick="closeEditModal()">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Full Name <span class="form-hint">shown in detail panel</span></label>
+          <input type="text" id="f-name" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="top">Short Display Name <span class="form-hint">shown on chip</span></label>
+          <input type="text" id="f-short" required>
+        </div>
+        <div class="form-group">
+          <label class="top">Organization</label>
+          <input type="text" id="f-org" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="top">Type</label>
+          <div class="radio-pills">
+            <label><input type="radio" name="f-type" value="funding"><span class="rpill">Funding</span></label>
+            <label><input type="radio" name="f-type" value="festival"><span class="rpill">Festival</span></label>
+            <label><input type="radio" name="f-type" value="market"><span class="rpill">Market</span></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="top">Format</label>
+          <div class="radio-pills">
+            <label><input type="radio" name="f-format" value="documentary"><span class="rpill">Documentary</span></label>
+            <label><input type="radio" name="f-format" value="scripted"><span class="rpill">Scripted</span></label>
+            <label><input type="radio" name="f-format" value="both"><span class="rpill">Both</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Schedule Type</label>
+          <div class="radio-pills">
+            <label><input type="radio" name="f-phase" value="deadline" onchange="updatePhaseFields()"><span class="rpill">Deadline</span></label>
+            <label><input type="radio" name="f-phase" value="opens"    onchange="updatePhaseFields()"><span class="rpill">Opens</span></label>
+            <label><input type="radio" name="f-phase" value="window"   onchange="updatePhaseFields()"><span class="rpill">Window (opens → deadline)</span></label>
+            <label><input type="radio" name="f-phase" value="event"    onchange="updatePhaseFields()"><span class="rpill">Event / Festival Dates</span></label>
+            <label><input type="radio" name="f-phase" value="rolling"  onchange="updatePhaseFields()"><span class="rpill">Rolling</span></label>
+          </div>
+        </div>
+      </div>
+      <div id="dateFields">
+        <div class="form-row trio">
+          <div class="form-group">
+            <label class="top">Date</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="form-group" id="endDateGroup">
+            <label class="top">End Date <span class="form-hint">windows &amp; events</span></label>
+            <input type="date" id="f-enddate" disabled>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;padding-bottom:2px">
+            <label class="top">&nbsp;</label>
+            <div class="approx-row">
+              <input type="checkbox" id="f-approx">
+              <span>Approximate (~)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Region Tags</label>
+          <div class="check-pills">
+            <label><input type="checkbox" name="f-tags" value="bc"><span class="cpill2">BC</span></label>
+            <label><input type="checkbox" name="f-tags" value="national"><span class="cpill2">National</span></label>
+            <label><input type="checkbox" name="f-tags" value="international"><span class="cpill2">International</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Description</label>
+          <textarea id="f-desc" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Notes <span class="form-hint">optional — shown as highlighted block</span></label>
+          <textarea id="f-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="top">Website URL</label>
+          <input type="url" id="f-url" placeholder="https://">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-delete" id="deleteBtn" style="display:none" onclick="deleteCurrentEvent()">Delete Event</button>
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-save"   onclick="saveEdit()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FIREBASE + APP — ES MODULE
+     ═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }                          from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { getFirestore, collection, getDocs,
+         setDoc, deleteDoc, doc, writeBatch }     from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+// ══════════════════════════════════════════════════════════
+// PASTE YOUR FIREBASE CONFIG HERE
+// Firebase Console → Project Settings → Your Apps → Web → firebaseConfig
+// ══════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAzkAn_gAFSkTUTRYyIdxitExLt43FY5kM",
+  authDomain: "film-industry-calendar.firebaseapp.com",
+  projectId: "film-industry-calendar",
+  storageBucket: "film-industry-calendar.firebasestorage.app",
+  messagingSenderId: "1084568219591",
+  appId: "1:1084568219591:web:c0fb7d8a8c3ad2bb03b3e2"
+};
+// ══════════════════════════════════════════════════════════
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const COL = 'events';
+
+// ── DEFAULT SEED DATA ──────────────────────────────────────
+const DEFAULT_EVENTS = [
+  { id:'tf-dev',      name:'Telefilm Development Program',                  short:'Telefilm Development',      org:'Telefilm Canada',                  type:'funding',  format:'both',         phaseType:'window',   date:'2026-09-04', endDate:'2026-09-25', approx:true,  desc:'Script and packaging development for feature films — both documentary and scripted. Opens each September for the new fiscal year.', notes:'Opens ~Sep 4, closes ~Sep 25. One of the first deadlines of the fall season.',            url:'https://telefilm.ca/en/funding/development',             tags:['national'] },
+  { id:'tf-prod-1',   name:'Telefilm Production Program — 1st Intake',      short:'Telefilm Production',       org:'Telefilm Canada',                  type:'funding',  format:'both',         phaseType:'window',   date:'2026-10-28', endDate:'2026-11-14', approx:true,  desc:'FR all budgets + EN $3.5M+. First intake of the fiscal year. Narrative features primarily.', notes:'First intake ~late Oct–mid Nov. Second intake Jan–Feb of the following year.',            url:'https://telefilm.ca/en/funding/production',              tags:['national'] },
+  { id:'tf-prod-2',   name:'Telefilm Production Program — 2nd Intake',      short:'Telefilm Production (2nd)', org:'Telefilm Canada',                  type:'funding',  format:'both',         phaseType:'window',   date:'2027-01-15', endDate:'2027-02-14', approx:true,  desc:'FR all budgets + EN $3.5M+. Second intake of fiscal year 2026-27.',                          notes:null,                                                                                         url:'https://telefilm.ca/en/funding/production',              tags:['national'] },
+  { id:'tf-doc',      name:'Telefilm Theatrical Documentary Program',        short:'Telefilm Theatrical Doc',   org:'Telefilm Canada',                  type:'funding',  format:'documentary',  phaseType:'window',   date:'2026-02-19', endDate:'2026-04-02', approx:true,  desc:'One intake per year. The anchor deadline for theatrical documentary. Guidelines published ~Feb 12.', notes:'2025-26: opened Mar 19, closed Apr 2. 2026-27 guidelines Feb 12. ONE intake per year.', url:'https://telefilm.ca/en/funding/theatrical-documentary',  tags:['national'] },
+  { id:'tf-ttw',      name:'Telefilm Talent to Watch',                       short:'Talent to Watch',           org:'Telefilm Canada / CineVic',         type:'funding',  format:'both',         phaseType:'deadline', date:'2026-04-28', endDate:null,          approx:false, desc:'Emerging filmmakers — director, producer, and writer must all qualify. 2026 confirmed.',      notes:'CineVic member deadline: Apr 12, 2026. Telefilm deadline: Apr 28, 2026.',                   url:'https://telefilm.ca/en/funding/talent-to-watch',         tags:['national','bc'] },
+  { id:'hd-sub-oct',  name:'Hot Docs Submissions — Early Bird',              short:'Hot Docs Sub (Early)',      org:'Hot Docs',                          type:'festival', format:'documentary',  phaseType:'deadline', date:'2026-10-15', endDate:null,          approx:true,  desc:'Early bird submission deadline for the April Hot Docs festival. Reduced fee.',               notes:null,                                                                                         url:'https://hotdocs.ca/submissions',                         tags:['national'] },
+  { id:'hd-sub-nov',  name:'Hot Docs Submissions — Regular',                 short:'Hot Docs Sub (Regular)',    org:'Hot Docs',                          type:'festival', format:'documentary',  phaseType:'deadline', date:'2026-11-15', endDate:null,          approx:true,  desc:'Regular submission deadline for the April Hot Docs festival.',                               notes:null,                                                                                         url:'https://hotdocs.ca/submissions',                         tags:['national'] },
+  { id:'hd-sub-dec',  name:'Hot Docs Submissions — Late Deadline',           short:'Hot Docs Sub (Late)',       org:'Hot Docs',                          type:'festival', format:'documentary',  phaseType:'deadline', date:'2026-12-15', endDate:null,          approx:true,  desc:'Late submission deadline for the April Hot Docs festival.',                                  notes:null,                                                                                         url:'https://hotdocs.ca/submissions',                         tags:['national'] },
+  { id:'hd-forum',    name:'Hot Docs Forum & Deal Maker',                    short:'Hot Docs Forum Apply',      org:'Hot Docs',                          type:'market',   format:'documentary',  phaseType:'deadline', date:'2027-01-15', endDate:null,          approx:true,  desc:'Applications close for the pitch market. Trigger financier must be attached.',               notes:'Notifications in early March. Forum runs at the April festival (Apr 27–29).',               url:'https://hotdocs.ca/industry/hot-docs-forum',             tags:['national'] },
+  { id:'hd-accel',    name:'Hot Docs Doc Accelerator',                       short:'Doc Accelerator',           org:'Hot Docs',                          type:'funding',  format:'documentary',  phaseType:'opens',    date:'2026-02-15', endDate:null,          approx:true,  desc:'Applications open for the summer development lab.',                                          notes:null,                                                                                         url:'https://hotdocs.ca/industry/doc-accelerator',            tags:['national'] },
+  { id:'hd-festival', name:'Hot Docs Festival',                              short:'Hot Docs',                  org:'Hot Docs',                          type:'festival', format:'documentary',  phaseType:'event',    date:'2026-04-23', endDate:'2026-05-03',  approx:false, desc:"North America's largest documentary festival. Forum/Deal Maker industry days Apr 27–29.",    notes:'2026 confirmed: April 23 – May 3.',                                                         url:'https://hotdocs.ca',                                     tags:['national'] },
+  { id:'cc-jan14',    name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-01-14', endDate:null,          approx:false, desc:'Explore & Create / Media Arts. Film, video, digital media. 2026 confirmed deadline.',        notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-jan28',    name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-01-28', endDate:null,          approx:false, desc:'Explore & Create / Media Arts. 2026 confirmed deadline.',                                    notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-apr22',    name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-04-22', endDate:null,          approx:false, desc:'Explore & Create cycle. 2026 confirmed deadline.',                                           notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-jun3',     name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-06-03', endDate:null,          approx:false, desc:'Media Arts deadline cycle. 2026 confirmed date.',                                            notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-jun17',    name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-06-17', endDate:null,          approx:false, desc:'Media Arts deadline cycle. 2026 confirmed date.',                                            notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-sep2',     name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-09-02', endDate:null,          approx:false, desc:'Fall Media Arts deadline. 2026 confirmed date.',                                             notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-oct7',     name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-10-07', endDate:null,          approx:false, desc:'Fall Media Arts deadline. 2026 confirmed date.',                                             notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'cc-oct21',    name:'Canada Council for the Arts',                    short:'Canada Council',            org:'Canada Council for the Arts',       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-10-21', endDate:null,          approx:false, desc:'Fall Media Arts deadline. 2026 confirmed date.',                                             notes:null,                                                                                         url:'https://canadacouncil.ca/funding/grants/explore-and-create', tags:['national'] },
+  { id:'bcac-q1',     name:'BC Arts Council — Media Arts (Q1)',              short:'BC Arts Council',           org:'BC Arts Council',                   type:'funding',  format:'both',         phaseType:'deadline', date:'2026-02-01', endDate:null,          approx:true,  desc:'Project grants for BC-based media artists — film, video, digital media, both doc and scripted. Approximately quarterly.', notes:'Deadlines shift annually — roughly 4 intakes/year. Confirm at bcartcouncil.ca.',           url:'https://bcartcouncil.ca/grants',                         tags:['bc'] },
+  { id:'bcac-q2',     name:'BC Arts Council — Media Arts (Q2)',              short:'BC Arts Council',           org:'BC Arts Council',                   type:'funding',  format:'both',         phaseType:'deadline', date:'2026-05-01', endDate:null,          approx:true,  desc:'Project grants for BC-based media artists. Approximately quarterly.',                        notes:'Confirm exact dates at bcartcouncil.ca.',                                                   url:'https://bcartcouncil.ca/grants',                         tags:['bc'] },
+  { id:'bcac-q3',     name:'BC Arts Council — Media Arts (Q3)',              short:'BC Arts Council',           org:'BC Arts Council',                   type:'funding',  format:'both',         phaseType:'deadline', date:'2026-08-15', endDate:null,          approx:true,  desc:'Project grants for BC-based media artists. Approximately quarterly.',                        notes:'Confirm exact dates at bcartcouncil.ca.',                                                   url:'https://bcartcouncil.ca/grants',                         tags:['bc'] },
+  { id:'bcac-q4',     name:'BC Arts Council — Media Arts (Q4)',              short:'BC Arts Council',           org:'BC Arts Council',                   type:'funding',  format:'both',         phaseType:'deadline', date:'2026-11-01', endDate:null,          approx:true,  desc:'Project grants for BC-based media artists. Approximately quarterly.',                        notes:'Confirm exact dates at bcartcouncil.ca.',                                                   url:'https://bcartcouncil.ca/grants',                         tags:['bc'] },
+  { id:'cbc-prod',    name:'Creative BC Production Program',                 short:'Creative BC Production',    org:'Creative BC',                       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-04-20', endDate:null,          approx:false, desc:'$20K–$200K for BC-based documentary and scripted projects. Round 8 deadline Apr 20, 2026.', notes:'Multiple rounds per year — check creativebc.com for current open round.',                  url:'https://creativebc.com/funding/production',              tags:['bc'] },
+  { id:'hgf-spring',  name:'Harold Greenberg Fund — Script Dev (Spring)',    short:'Harold Greenberg Fund',     org:'Harold Greenberg Fund',             type:'funding',  format:'scripted',     phaseType:'deadline', date:'2026-03-15', endDate:null,          approx:true,  desc:'Script commissioning for English-language Canadian features. Spring intake.',                notes:'Up to ~$35K first draft; ~$70K rewrites. Confirm at haroldgreenbergfund.ca each year.',     url:'https://haroldgreenbergfund.ca',                         tags:['national'] },
+  { id:'hgf-fall',    name:'Harold Greenberg Fund — Script Dev (Fall)',      short:'Harold Greenberg Fund',     org:'Harold Greenberg Fund',             type:'funding',  format:'scripted',     phaseType:'deadline', date:'2026-10-15', endDate:null,          approx:true,  desc:'Script commissioning for English-language Canadian features. Fall intake.',                  notes:'Confirm intake dates at haroldgreenbergfund.ca each year.',                                 url:'https://haroldgreenbergfund.ca',                         tags:['national'] },
+  { id:'cmf',         name:'Canada Media Fund (CMF / FMC)',                  short:'CMF / FMC',                 org:'Canada Media Fund',                 type:'funding',  format:'both',         phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'Multiple streams for TV series and interactive digital media. Broadcaster-triggered.',       notes:'Rolling / broadcaster-triggered throughout the year. No single annual deadline.',           url:'https://cmf-fmc.ca',                                     tags:['national'] },
+  { id:'bell',        name:'Bell Fund',                                       short:'Bell Fund',                 org:'Bell Fund',                         type:'funding',  format:'scripted',     phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'English-language digital media and broadcast content. Broadcaster-triggered. TV series.',    notes:'Requires CTV/Bell Media broadcaster attachment. New fiscal year ~September.',               url:'https://bellfund.ca',                                    tags:['national'] },
+  { id:'shaw',        name:'Shaw Rocket Fund',                                short:'Shaw Rocket Fund',          org:'Shaw Rocket Fund',                  type:'funding',  format:'scripted',     phaseType:null,       date:null,         endDate:null,          approx:true,  desc:"Children's and youth scripted content. Broadcaster-triggered.",                             notes:null,                                                                                         url:'https://shawrocketfund.ca',                              tags:['national'] },
+  { id:'cogeco',      name:'Cogeco Fund',                                     short:'Cogeco Fund',               org:'Cogeco Fund',                       type:'funding',  format:'scripted',     phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'French-language TV series and digital content. Broadcaster-triggered.',                     notes:null,                                                                                         url:'https://cogecofund.ca',                                  tags:['national'] },
+  { id:'cinevic',     name:'CineVic Member Programs',                         short:'CineVic Programs',          org:'CineVic',                           type:'funding',  format:'both',         phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'Victoria-based filmmaker co-op. Short Film Fund, equipment access, mentorship, workshops.', notes:'CineVic membership required for Telefilm Talent to Watch. Rolling — check cinevic.ca.',     url:'https://cinevic.ca',                                     tags:['bc'] },
+  { id:'tiff-sub',    name:'TIFF Submissions Open',                           short:'TIFF Submissions',          org:'TIFF',                              type:'festival', format:'both',         phaseType:'opens',    date:'2026-04-15', endDate:null,          approx:true,  desc:'Submissions open April/May for the September festival. Recognized by Telefilm and CMF.',    notes:null,                                                                                         url:'https://tiff.net',                                       tags:['national'] },
+  { id:'tiff-fest',   name:'Toronto International Film Festival',             short:'TIFF',                      org:'TIFF',                              type:'festival', format:'both',         phaseType:'event',    date:'2026-09-04', endDate:'2026-09-14',  approx:true,  desc:'World-class launching pad for Canadian and international features.',                         notes:null,                                                                                         url:'https://tiff.net',                                       tags:['national'] },
+  { id:'viff-sub',    name:'VIFF Submissions Open',                           short:'VIFF Submissions',          org:'VIFF',                              type:'festival', format:'both',         phaseType:'opens',    date:'2026-06-15', endDate:null,          approx:true,  desc:'Submissions open ~June/July for the late September/October festival.',                       notes:null,                                                                                         url:'https://viff.org',                                       tags:['bc','national'] },
+  { id:'viff-fest',   name:'Vancouver International Film Festival',           short:'VIFF',                      org:'VIFF',                              type:'festival', format:'both',         phaseType:'event',    date:'2026-09-24', endDate:'2026-10-08',  approx:true,  desc:'Key Canadian festival, BC-based. Strong industry programming. Recognized by Telefilm/CMF.',  notes:null,                                                                                         url:'https://viff.org',                                       tags:['bc','national'] },
+  { id:'wff-sub',     name:'Whistler Film Festival Submissions',              short:'WFF Submissions',           org:'Whistler Film Festival',            type:'festival', format:'both',         phaseType:'opens',    date:'2026-07-01', endDate:null,          approx:true,  desc:'Submissions open ~July for November festival. Producers Lab industry program.',             notes:null,                                                                                         url:'https://whistlerfilmfestival.com',                       tags:['bc','national'] },
+  { id:'wff-fest',    name:'Whistler Film Festival',                          short:'Whistler FF',               org:'Whistler Film Festival',            type:'festival', format:'both',         phaseType:'event',    date:'2026-11-27', endDate:'2026-12-01',  approx:true,  desc:'Whistler, BC. Producers Lab, pitching competitions. Recognized by Telefilm/CMF.',           notes:null,                                                                                         url:'https://whistlerfilmfestival.com',                       tags:['bc','national'] },
+  { id:'doxa-sub',    name:'DOXA Documentary Film Festival — Submissions',    short:'DOXA Submissions',          org:'DOXA',                              type:'festival', format:'documentary',  phaseType:'deadline', date:'2026-01-15', endDate:null,          approx:true,  desc:"Vancouver's documentary festival. Submission deadline ~January for the May festival.",      notes:null,                                                                                         url:'https://doxafestival.ca',                                tags:['bc'] },
+  { id:'doxa-fest',   name:'DOXA Documentary Film Festival',                  short:'DOXA',                      org:'DOXA',                              type:'festival', format:'documentary',  phaseType:'event',    date:'2026-05-01', endDate:'2026-05-11',  approx:true,  desc:"Vancouver's documentary festival. Essential for BC-based documentary filmmakers.",          notes:null,                                                                                         url:'https://doxafestival.ca',                                tags:['bc'] },
+  { id:'pif-sub',     name:'Planet in Focus Submissions',                     short:'Planet in Focus Sub',       org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'opens',    date:'2026-06-01', endDate:null,          approx:true,  desc:'Submissions open ~June for October environmental documentary festival, Toronto.',            notes:'Fairy Creek screened and won here in 2024.',                                                url:'https://planetinfocus.org',                              tags:['national'] },
+  { id:'pif-fest',    name:'Planet in Focus Festival',                        short:'Planet in Focus',           org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'event',    date:'2026-10-15', endDate:'2026-10-25',  approx:true,  desc:'Environmental documentary festival, Toronto. Fairy Creek screened and won here in 2024.',   notes:null,                                                                                         url:'https://planetinfocus.org',                              tags:['national'] },
+  { id:'in-sub',      name:'imagineNATIVE Submissions',                       short:'imagineNATIVE Sub',         org:'imagineNATIVE',                     type:'festival', format:'both',         phaseType:'opens',    date:'2026-05-01', endDate:null,          approx:true,  desc:"World's largest Indigenous film and media arts festival, Toronto. Submissions open ~May.",  notes:null,                                                                                         url:'https://imaginenative.org',                              tags:['national'] },
+  { id:'in-fest',     name:'imagineNATIVE Film + Media Arts Festival',        short:'imagineNATIVE',             org:'imagineNATIVE',                     type:'festival', format:'both',         phaseType:'event',    date:'2026-10-14', endDate:'2026-10-19',  approx:true,  desc:"World's largest Indigenous film and media arts festival, Toronto. Recognized by Telefilm/CMF.", notes:null,                                                                                      url:'https://imaginenative.org',                              tags:['national'] },
+  { id:'io-fest',     name:'Inside Out Film Festival',                        short:'Inside Out',                org:'Inside Out',                        type:'festival', format:'both',         phaseType:'event',    date:'2026-05-22', endDate:'2026-06-01',  approx:true,  desc:"Toronto's LGBTQ+ film festival. Recognized by Telefilm/CMF.",                               notes:null,                                                                                         url:'https://insideout.ca',                                   tags:['national'] },
+  { id:'ciff',        name:'Calgary International Film Festival',             short:'CIFF Calgary',              org:'CIFF',                              type:'festival', format:'both',         phaseType:'event',    date:'2026-09-18', endDate:'2026-09-28',  approx:true,  desc:'Recognized by Telefilm and CMF.',                                                            notes:null,                                                                                         url:'https://ciffcalgary.ca',                                 tags:['national'] },
+  { id:'fantasia',    name:'Fantasia International Film Festival',            short:'Fantasia',                  org:'Fantasia',                          type:'festival', format:'both',         phaseType:'event',    date:'2026-07-17', endDate:'2026-08-06',  approx:true,  desc:"Montreal. Genre and speculative fiction. One of North America's largest genre festivals.",  notes:null,                                                                                         url:'https://fantasiafestival.com',                           tags:['national'] },
+  { id:'ridm',        name:'RIDM — Rencontres Internationales du Documentaire de Montréal', short:'RIDM', org:'RIDM',                              type:'festival', format:'documentary',  phaseType:'event',    date:'2026-11-12', endDate:'2026-11-22',  approx:true,  desc:'International documentary film festival, Montréal.',                                         notes:null,                                                                                         url:'https://ridm.ca',                                        tags:['national'] },
+  { id:'rwm',         name:'Rendezvous with Madness',                         short:'Rendezvous w/ Madness',     org:'Workman Arts',                      type:'festival', format:'both',         phaseType:'event',    date:'2026-10-24', endDate:'2026-11-03',  approx:true,  desc:"Toronto. Mental health and addiction-themed films.",                                         notes:null,                                                                                         url:'https://workmanarts.com/rendezvous-with-madness',        tags:['national'] },
+  { id:'cannes',      name:'Cannes Film Festival / Marché du Film',           short:'Cannes / Marché',           org:'Festival de Cannes',                type:'festival', format:'both',         phaseType:'event',    date:'2026-05-13', endDate:'2026-05-24',  approx:true,  desc:'Cannes Film Festival + Marché du Film + Producers Network. Key international launch pad.',   notes:null,                                                                                         url:'https://festival-cannes.com',                            tags:['international'] },
+  { id:'berlinale',   name:'Berlinale — Berlin International Film Festival',  short:'Berlinale / EFM',           org:'Berlinale',                         type:'festival', format:'both',         phaseType:'event',    date:'2026-02-12', endDate:'2026-02-22',  approx:true,  desc:'Berlin International Film Festival + European Film Market + Co-Production Market.',          notes:null,                                                                                         url:'https://berlinale.de',                                   tags:['international'] },
+  { id:'afm',         name:'AFM — American Film Market',                      short:'AFM',                       org:'AFM / IFTA',                        type:'market',   format:'both',         phaseType:'event',    date:'2026-11-05', endDate:'2026-11-12',  approx:true,  desc:'Los Angeles. Key sales and acquisition market.',                                             notes:null,                                                                                         url:'https://ifta-online.org/afm',                            tags:['international'] },
+  { id:'idfa-apply',  name:'IDFA Co-Production Market — Applications',        short:'IDFA Co-Pro Apply',         org:'IDFA',                              type:'market',   format:'documentary',  phaseType:'deadline', date:'2026-06-15', endDate:null,          approx:true,  desc:'Applications due ~June for the November Amsterdam co-production market.',                    notes:null,                                                                                         url:'https://idfa.nl/en/industry/idfa-forum',                 tags:['international'] },
+  { id:'idfa-fest',   name:'IDFA — Amsterdam International Documentary Film Festival', short:'IDFA / Co-Pro Market', org:'IDFA',                         type:'festival', format:'documentary',  phaseType:'event',    date:'2026-11-20', endDate:'2026-11-30',  approx:true,  desc:"World's largest documentary film festival, Amsterdam. Co-Production Market runs concurrently.", notes:null,                                                                                      url:'https://idfa.nl',                                        tags:['international'] },
+  { id:'sheffield',   name:'Sheffield Doc/Fest',                              short:'Sheffield Doc/Fest',        org:'Sheffield Doc/Fest',                type:'festival', format:'documentary',  phaseType:'event',    date:'2026-06-05', endDate:'2026-06-10',  approx:true,  desc:'UK documentary festival with MeetMarket pitching forum.',                                    notes:null,                                                                                         url:'https://sheffdocfest.com',                               tags:['international'] },
+];
+
+// ── APP STATE ──────────────────────────────────────────────
+const MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let events     = [];
+let currentYear= 2026;
+let filters    = { type:'all', format:'all', region:'all' };
+let selectedId = null;
+let editingId  = null;
+
+// ── FIRESTORE HELPERS ─────────────────────────────────────
+function setLoading(v) {
+  document.getElementById('loadingOverlay').classList.toggle('show', v);
+}
+
+let toastTimer;
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+async function fetchEvents() {
+  setLoading(true);
+  try {
+    const snap = await getDocs(collection(db, COL));
+    events = snap.docs.map(d => d.data());
+    renderYear();
+    if (!events.length) showEmptyState();
+  } catch(e) {
+    toast('Load failed: ' + e.message, true);
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function pushEvent(ev) {
+  await setDoc(doc(db, COL, ev.id), ev);
+}
+
+async function removeEvent(id) {
+  await deleteDoc(doc(db, COL, id));
+}
+
+window.seedDatabase = async function() {
+  setLoading(true);
+  try {
+    const batch = writeBatch(db);
+    DEFAULT_EVENTS.forEach(ev => batch.set(doc(db, COL, ev.id), ev));
+    await batch.commit();
+    events = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
+    toast('Database seeded with ' + DEFAULT_EVENTS.length + ' events.');
+    renderYear();
+  } catch(e) {
+    toast('Seed failed: ' + e.message, true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+window.resetToDefaults = async function() {
+  if (!confirm('Reset to defaults? All custom edits and added events will be deleted.')) return;
+  setLoading(true);
+  try {
+    // Delete all existing
+    const snap = await getDocs(collection(db, COL));
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    DEFAULT_EVENTS.forEach(ev => batch.set(doc(db, COL, ev.id), ev));
+    await batch.commit();
+    events = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
+    toast('Reset to defaults.');
+    renderYear();
+  } catch(e) {
+    toast('Reset failed: ' + e.message, true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ── DATE HELPERS ─────────────────────────────────────────
+function parseISO(s) {
+  if (!s) return null;
+  const [y,m,d] = s.split('-').map(Number);
+  return { year:y, month:m, day:d };
+}
+function fmtS(s, approx) {
+  if (!s) return '';
+  const d = parseISO(s);
+  return (approx?'~':'') + MONTHS_S[d.month-1] + ' ' + d.day;
+}
+function fmtL(s, approx) {
+  if (!s) return '';
+  const d = parseISO(s);
+  return (approx?'~':'') + MONTHS[d.month-1] + ' ' + d.day + ', ' + d.year;
+}
+
+// ── FILTER ───────────────────────────────────────────────
+function matches(ev) {
+  const {type, format, region} = filters;
+  if (type !== 'all' && ev.type !== type) return false;
+  if (format !== 'all') {
+    if (format === 'both-fmt') { if (ev.format !== 'both') return false; }
+    else if (ev.format !== format && ev.format !== 'both') return false;
+  }
+  if (region !== 'all' && !ev.tags.includes(region)) return false;
+  return true;
+}
+
+function chipsForMonth(m, y) {
+  const out = [];
+  for (const ev of events) {
+    if (!matches(ev) || !ev.date) continue;
+    const s = parseISO(ev.date);
+    const e = ev.endDate ? parseISO(ev.endDate) : null;
+    if (s.year === y && s.month === m) out.push({ ev, role:'start' });
+    if (e && e.year === y && e.month === m && !(s.year === y && s.month === m))
+      out.push({ ev, role:'end' });
+  }
+  return out.sort((a,b) => {
+    const ad = a.role==='start' ? parseISO(a.ev.date).day : parseISO(a.ev.endDate).day;
+    const bd = b.role==='start' ? parseISO(b.ev.date).day : parseISO(b.ev.endDate).day;
+    return ad-bd;
+  });
+}
+
+function phaseLabel(ev, role) {
+  if (role === 'end') return ev.phaseType === 'event' ? 'Ends' : 'Deadline';
+  return { deadline:'Deadline', opens:'Opens', window:'Opens', event:'Event' }[ev.phaseType] || '';
+}
+function isDeadlineRole(ev, role) {
+  return (role==='start' && ev.phaseType==='deadline') ||
+         (role==='end'   && ev.phaseType!=='event');
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function showEmptyState() {
+  document.getElementById('yearGrid').innerHTML = `
+    <div class="empty-state">
+      <h2>DATABASE IS EMPTY</h2>
+      <p>Your Firestore database has no events yet.<br>
+         Click below to load all the built-in events, or use <strong>+ Add Event</strong> to start from scratch.</p>
+      <button class="seed-btn" onclick="seedDatabase()">Seed with Default Events</button>
+    </div>`;
+  document.getElementById('rollingSection').style.display = 'none';
+}
+
+function renderYear() {
+  if (!events.length) { showEmptyState(); return; }
+  const grid = document.getElementById('yearGrid');
+  grid.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const chips = chipsForMonth(m, currentYear);
+    const card = document.createElement('div');
+    card.className = 'month-card';
+    card.innerHTML = `
+      <div class="month-header">
+        <span class="month-name">${MONTHS[m-1].toUpperCase()}</span>
+        <span class="month-count">${chips.length}</span>
+      </div>
+      <div class="month-events" id="me-${m}"></div>`;
+    grid.appendChild(card);
+    const cont = card.querySelector(`#me-${m}`);
+    if (!chips.length) { cont.innerHTML = `<span class="month-empty">No events</span>`; continue; }
+    chips.forEach(({ev, role}) => cont.appendChild(buildChip(ev, role)));
+  }
+  renderRolling();
+}
+
+function buildChip(ev, role) {
+  const chip = document.createElement('div');
+  chip.className = `chip ${ev.type}${selectedId===ev.id?' active':''}${ev.custom?' custom':''}`;
+  chip.dataset.id = ev.id;
+  const dateStr = role==='start' ? fmtS(ev.date, ev.approx) : fmtS(ev.endDate, ev.approx);
+  const endStr  = (role==='start' && ev.endDate) ? ` – ${fmtS(ev.endDate, ev.approx)}` : '';
+  const pLabel  = phaseLabel(ev, role);
+  const dead    = isDeadlineRole(ev, role);
+  const fmtP    = ev.format==='documentary'?`<span class="cpill">Doc</span>`
+                : ev.format==='scripted'   ?`<span class="cpill">Scripted</span>`
+                :                           `<span class="cpill">Doc+Scr</span>`;
+  const regP    = ev.tags.includes('bc')          ?`<span class="cpill bc">BC</span>`
+                : ev.tags.includes('international')?`<span class="cpill intl">Intl</span>` : '';
+  chip.innerHTML = `
+    <div class="chip-phase${dead?' is-deadline':''}">${pLabel}</div>
+    <div class="chip-name">${ev.short}</div>
+    <div class="chip-meta">
+      <span class="chip-date">${dateStr}${endStr}</span>
+      ${fmtP}${regP}${ev.approx?'<span class="cpill approx">~</span>':''}
+    </div>`;
+  chip.addEventListener('click', () => showDetail(ev.id));
+  return chip;
+}
+
+function renderRolling() {
+  const rolling = events.filter(ev => matches(ev) && !ev.date);
+  const sec  = document.getElementById('rollingSection');
+  const cont = document.getElementById('rollingGrid');
+  sec.style.display = rolling.length ? '' : 'none';
+  cont.innerHTML = '';
+  rolling.forEach(ev => cont.appendChild(buildChip(ev, 'start')));
+}
+
+// ── DETAIL PANEL ─────────────────────────────────────────
+window.showDetail = function(id) {
+  selectedId = id;
+  const ev = events.find(e => e.id===id);
+  if (!ev) return;
+  document.getElementById('dpType').textContent =
+    ev.type.charAt(0).toUpperCase()+ev.type.slice(1)+' · '+
+    (ev.format==='documentary'?'Documentary':ev.format==='scripted'?'Scripted':'Doc + Scripted');
+  document.getElementById('dpName').textContent = ev.name;
+  document.getElementById('dpOrg').textContent  = ev.org;
+  document.getElementById('dpBadges').innerHTML =
+    `<span class="dbadge ${ev.type}">${ev.type}</span>`+
+    (ev.format==='documentary'?`<span class="dbadge doc">Documentary</span>`:
+     ev.format==='scripted'   ?`<span class="dbadge scripted">Scripted</span>`:
+                                `<span class="dbadge both-fmt">Doc + Scripted</span>`)+
+    ev.tags.map(t=> t==='bc'?`<span class="dbadge bc">BC</span>`:
+                    t==='national'?`<span class="dbadge national">National</span>`:
+                    `<span class="dbadge intl">International</span>`).join('')+
+    (ev.approx?`<span class="dbadge approx">≈ Approximate</span>`:'');
+  let dH, dV, dS='';
+  if (!ev.date) { dH='Schedule'; dV='Rolling / Year-round'; dS='Check website for current deadlines'; }
+  else if (ev.endDate) {
+    dH = ev.phaseType==='event'?'Event Dates':'Application Window';
+    dV = fmtL(ev.date, ev.approx)+' — '+fmtL(ev.endDate, ev.approx);
+    if (ev.phaseType==='window') dS='Opens '+fmtS(ev.date,false)+' · Deadline '+fmtS(ev.endDate,false);
+  } else {
+    dH = {deadline:'Deadline',opens:'Opens',event:'Date',window:'Opens'}[ev.phaseType]||'Date';
+    dV = fmtL(ev.date, ev.approx);
+  }
+  document.getElementById('dpDates').innerHTML=`
+    <div class="dp-dates-header">${dH}</div>
+    <div class="dp-dates-body">
+      <div class="dp-dates-val">${dV}</div>
+      ${dS?`<div class="dp-dates-sub">${dS}</div>`:''}
+    </div>`;
+  document.getElementById('dpDesc').textContent = ev.desc||'';
+  const nEl = document.getElementById('dpNotes');
+  if (ev.notes) { nEl.innerHTML=`<div class="dp-notes-header">Note</div><div class="dp-notes-body">${ev.notes}</div>`; nEl.style.display=''; }
+  else nEl.style.display='none';
+  const lEl = document.getElementById('dpLink');
+  lEl.href=ev.url||'#'; lEl.textContent=(ev.url||'No URL set').replace(/^https?:\/\//,'');
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  renderYear();
+};
+
+window.closeDetail = function() {
+  selectedId=null;
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  renderYear();
+};
+
+// ── EDIT MODAL ───────────────────────────────────────────
+window.updatePhaseFields = function() {
+  const pt  = document.querySelector('[name="f-phase"]:checked')?.value;
+  const isR = pt==='rolling', needsEnd = pt==='window'||pt==='event';
+  document.getElementById('dateFields').style.display = isR ? 'none' : '';
+  document.getElementById('endDateGroup').classList.toggle('disabled-group', !needsEnd);
+  document.getElementById('f-enddate').disabled = !needsEnd;
+  if (!needsEnd) document.getElementById('f-enddate').value='';
+};
+
+window.openAddModal = function() {
+  editingId=null;
+  document.getElementById('modalTitle').textContent='ADD EVENT';
+  document.getElementById('deleteBtn').style.display='none';
+  ['f-name','f-short','f-org','f-date','f-enddate','f-desc','f-notes','f-url'].forEach(id=> document.getElementById(id).value='');
+  document.getElementById('f-approx').checked=false;
+  document.querySelectorAll('[name="f-type"],[name="f-format"],[name="f-phase"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('[name="f-tags"]').forEach(c=>c.checked=false);
+  window.updatePhaseFields();
+  document.getElementById('editModal').style.display='flex';
+};
+
+window.openEditModal = function() {
+  if (!selectedId) return;
+  editingId=selectedId;
+  const ev=events.find(e=>e.id===editingId); if (!ev) return;
+  document.getElementById('modalTitle').textContent='EDIT EVENT';
+  document.getElementById('deleteBtn').style.display='';
+  document.getElementById('f-name').value  = ev.name||'';
+  document.getElementById('f-short').value = ev.short||'';
+  document.getElementById('f-org').value   = ev.org||'';
+  document.getElementById('f-date').value  = ev.date||'';
+  document.getElementById('f-enddate').value = ev.endDate||'';
+  document.getElementById('f-approx').checked = !!ev.approx;
+  document.getElementById('f-desc').value  = ev.desc||'';
+  document.getElementById('f-notes').value = ev.notes||'';
+  document.getElementById('f-url').value   = ev.url||'';
+  document.querySelectorAll('[name="f-type"]').forEach(r=>  r.checked=r.value===ev.type);
+  document.querySelectorAll('[name="f-format"]').forEach(r=> r.checked=r.value===ev.format);
+  const pv = ev.date ? (ev.phaseType||'deadline') : 'rolling';
+  document.querySelectorAll('[name="f-phase"]').forEach(r=>  r.checked=r.value===pv);
+  document.querySelectorAll('[name="f-tags"]').forEach(c=>   c.checked=ev.tags.includes(c.value));
+  window.updatePhaseFields();
+  document.getElementById('editModal').style.display='flex';
+};
+
+window.closeEditModal = function() {
+  document.getElementById('editModal').style.display='none';
+  editingId=null;
+};
+
+window.saveEdit = async function() {
+  const typeVal  = document.querySelector('[name="f-type"]:checked')?.value;
+  const fmtVal   = document.querySelector('[name="f-format"]:checked')?.value;
+  const phaseVal = document.querySelector('[name="f-phase"]:checked')?.value;
+  const name     = document.getElementById('f-name').value.trim();
+  const short    = document.getElementById('f-short').value.trim();
+  const org      = document.getElementById('f-org').value.trim();
+  if (!typeVal||!fmtVal||!phaseVal||!name||!short||!org) {
+    toast('Fill in Name, Short Name, Org, Type, Format, and Schedule Type.', true); return;
+  }
+  const isRolling = phaseVal==='rolling', needsEnd = phaseVal==='window'||phaseVal==='event';
+  const ev = {
+    id:        editingId||('custom-'+Date.now()),
+    name, short, org,
+    type:      typeVal,
+    format:    fmtVal,
+    phaseType: isRolling ? null : phaseVal,
+    date:      isRolling ? null : (document.getElementById('f-date').value||null),
+    endDate:   needsEnd  ? (document.getElementById('f-enddate').value||null) : null,
+    approx:    document.getElementById('f-approx').checked,
+    desc:      document.getElementById('f-desc').value.trim(),
+    notes:     document.getElementById('f-notes').value.trim()||null,
+    url:       document.getElementById('f-url').value.trim(),
+    tags:      [...document.querySelectorAll('[name="f-tags"]:checked')].map(c=>c.value),
+    custom:    true,
+  };
+  setLoading(true);
+  try {
+    await pushEvent(ev);
+    if (editingId) { const i=events.findIndex(e=>e.id===editingId); if(i>=0) events[i]=ev; else events.push(ev); }
+    else events.push(ev);
+    toast(editingId ? 'Event updated.' : 'Event added.');
+    window.closeEditModal();
+    renderYear();
+  } catch(e) { toast('Save failed: '+e.message, true); }
+  finally { setLoading(false); }
+};
+
+window.deleteCurrentEvent = async function() {
+  if (!editingId||!confirm('Delete this event? This cannot be undone.')) return;
+  setLoading(true);
+  try {
+    await removeEvent(editingId);
+    events = events.filter(e=>e.id!==editingId);
+    toast('Event deleted.');
+    window.closeEditModal();
+    if (selectedId===editingId) window.closeDetail(); else renderYear();
+  } catch(e) { toast('Delete failed: '+e.message, true); }
+  finally { setLoading(false); }
+};
+
+// ── EXPORT / IMPORT ───────────────────────────────────────
+window.exportJSON = function() {
+  const blob = new Blob([JSON.stringify(events, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download=`film-calendar-${currentYear}.json`; a.click();
+};
+
+window.importJSON = function() {
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange = async e => {
+    const r = new FileReader();
+    r.onload = async re => {
+      try {
+        const arr = JSON.parse(re.result);
+        if (!Array.isArray(arr)) throw new Error('Expected JSON array');
+        setLoading(true);
+        const batch = writeBatch(db);
+        arr.forEach(ev => batch.set(doc(db, COL, ev.id), ev));
+        await batch.commit();
+        events = arr;
+        toast(`Imported ${arr.length} events.`);
+        renderYear();
+      } catch(err) { toast('Import failed: '+err.message, true); }
+      finally { setLoading(false); }
+    };
+    r.readAsText(e.target.files[0]);
+  };
+  inp.click();
+};
+
+// ── FILTERS & YEAR NAV ────────────────────────────────────
+document.querySelectorAll('.pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key=btn.dataset.filter;
+    filters[key]=btn.dataset.value;
+    document.querySelectorAll(`.pill-btn[data-filter="${key}"]`).forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderYear();
+  });
+});
+
+window.changeYear = function(d) {
+  currentYear += d;
+  document.getElementById('yearDisplay').textContent = currentYear;
+  renderYear();
+};
+
+// ── INIT ─────────────────────────────────────────────────
+fetchEvents();
+</script>
+</body>
+</html>
