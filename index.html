@@ -103,7 +103,9 @@ main { padding: 16px 20px 60px; }
 .chip.funding  { background: var(--c-funding); }
 .chip.festival { background: var(--c-festival); }
 .chip.market   { background: var(--c-market); }
-.chip.custom::after { content: '✦'; position: absolute; top: 3px; right: 5px; font-size: 7px; opacity: .4; }
+.chip.custom::after { content: '✦'; position: absolute; top: 3px; right: 22px; font-size: 7px; opacity: .4; }
+.chip-edit-btn { position: absolute; top: 4px; right: 5px; opacity: 0; font-size: 9px; background: rgba(255,255,255,.85); border: 1px solid rgba(20,20,20,.25); border-radius: 3px; padding: 1px 4px; cursor: pointer; transition: opacity .15s; line-height: 1.4; z-index: 2; }
+.chip:hover .chip-edit-btn { opacity: 1; }
 .chip-phase { font-size: 7px; text-transform: uppercase; letter-spacing: 1px; opacity: .6; margin-bottom: 1px; }
 .chip-phase.is-deadline { opacity: 1; font-weight: 700; }
 .chip-name { font-family: var(--font-d); font-size: 14px; letter-spacing: .3px; line-height: 1.15; }
@@ -213,8 +215,7 @@ main { padding: 16px 20px 60px; }
     </div>
     <div class="hdr-tools">
       <button class="tool-btn add-btn" onclick="openAddModal()">+ Add Event</button>
-      <button class="tool-btn" onclick="exportJSON()">Export JSON</button>
-      <button class="tool-btn" onclick="importJSON()">Import JSON</button>
+      <button class="tool-btn" onclick="exportCSV()">Export CSV</button>
       <button class="tool-btn" onclick="resetToDefaults()">Reset to Defaults</button>
     </div>
   </div>
@@ -472,8 +473,8 @@ const DEFAULT_EVENTS = [
   { id:'wff-fest',    name:'Whistler Film Festival',                          short:'Whistler FF',               org:'Whistler Film Festival',            type:'festival', format:'both',         phaseType:'event',    date:'2026-11-27', endDate:'2026-12-01',  approx:true,  desc:'Whistler, BC. Producers Lab, pitching competitions. Recognized by Telefilm/CMF.',           notes:null,                                                                                         url:'https://whistlerfilmfestival.com',                       tags:['bc','national'] },
   { id:'doxa-sub',    name:'DOXA Documentary Film Festival — Submissions',    short:'DOXA Submissions',          org:'DOXA',                              type:'festival', format:'documentary',  phaseType:'deadline', date:'2026-01-15', endDate:null,          approx:true,  desc:"Vancouver's documentary festival. Submission deadline ~January for the May festival.",      notes:null,                                                                                         url:'https://doxafestival.ca',                                tags:['bc'] },
   { id:'doxa-fest',   name:'DOXA Documentary Film Festival',                  short:'DOXA',                      org:'DOXA',                              type:'festival', format:'documentary',  phaseType:'event',    date:'2026-05-01', endDate:'2026-05-11',  approx:true,  desc:"Vancouver's documentary festival. Essential for BC-based documentary filmmakers.",          notes:null,                                                                                         url:'https://doxafestival.ca',                                tags:['bc'] },
-  { id:'pif-sub',     name:'Planet in Focus Submissions',                     short:'Planet in Focus Sub',       org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'opens',    date:'2026-06-01', endDate:null,          approx:true,  desc:'Submissions open ~June for October environmental documentary festival, Toronto.',            notes:'Fairy Creek screened and won here in 2024.',                                                url:'https://planetinfocus.org',                              tags:['national'] },
-  { id:'pif-fest',    name:'Planet in Focus Festival',                        short:'Planet in Focus',           org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'event',    date:'2026-10-15', endDate:'2026-10-25',  approx:true,  desc:'Environmental documentary festival, Toronto. Fairy Creek screened and won here in 2024.',   notes:null,                                                                                         url:'https://planetinfocus.org',                              tags:['national'] },
+  { id:'pif-sub',     name:'Planet in Focus Submissions',                     short:'Planet in Focus Sub',       org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'opens',    date:'2026-06-01', endDate:null,          approx:true,  desc:'Submissions open ~June for October environmental documentary festival, Toronto.',            notes:null,                                                                                         url:'https://planetinfocus.org',                              tags:['national'] },
+  { id:'pif-fest',    name:'Planet in Focus Festival',                        short:'Planet in Focus',           org:'Planet in Focus',                   type:'festival', format:'documentary',  phaseType:'event',    date:'2026-10-15', endDate:'2026-10-25',  approx:true,  desc:'Environmental documentary festival focused on nature, wildlife, and the environment. Toronto.', notes:null,                                                                                      url:'https://planetinfocus.org',                              tags:['national'] },
   { id:'in-sub',      name:'imagineNATIVE Submissions',                       short:'imagineNATIVE Sub',         org:'imagineNATIVE',                     type:'festival', format:'both',         phaseType:'opens',    date:'2026-05-01', endDate:null,          approx:true,  desc:"World's largest Indigenous film and media arts festival, Toronto. Submissions open ~May.",  notes:null,                                                                                         url:'https://imaginenative.org',                              tags:['national'] },
   { id:'in-fest',     name:'imagineNATIVE Film + Media Arts Festival',        short:'imagineNATIVE',             org:'imagineNATIVE',                     type:'festival', format:'both',         phaseType:'event',    date:'2026-10-14', endDate:'2026-10-19',  approx:true,  desc:"World's largest Indigenous film and media arts festival, Toronto. Recognized by Telefilm/CMF.", notes:null,                                                                                      url:'https://imaginenative.org',                              tags:['national'] },
   { id:'io-fest',     name:'Inside Out Film Festival',                        short:'Inside Out',                org:'Inside Out',                        type:'festival', format:'both',         phaseType:'event',    date:'2026-05-22', endDate:'2026-06-01',  approx:true,  desc:"Toronto's LGBTQ+ film festival. Recognized by Telefilm/CMF.",                               notes:null,                                                                                         url:'https://insideout.ca',                                   tags:['national'] },
@@ -487,6 +488,26 @@ const DEFAULT_EVENTS = [
   { id:'idfa-apply',  name:'IDFA Co-Production Market — Applications',        short:'IDFA Co-Pro Apply',         org:'IDFA',                              type:'market',   format:'documentary',  phaseType:'deadline', date:'2026-06-15', endDate:null,          approx:true,  desc:'Applications due ~June for the November Amsterdam co-production market.',                    notes:null,                                                                                         url:'https://idfa.nl/en/industry/idfa-forum',                 tags:['international'] },
   { id:'idfa-fest',   name:'IDFA — Amsterdam International Documentary Film Festival', short:'IDFA / Co-Pro Market', org:'IDFA',                         type:'festival', format:'documentary',  phaseType:'event',    date:'2026-11-20', endDate:'2026-11-30',  approx:true,  desc:"World's largest documentary film festival, Amsterdam. Co-Production Market runs concurrently.", notes:null,                                                                                      url:'https://idfa.nl',                                        tags:['international'] },
   { id:'sheffield',   name:'Sheffield Doc/Fest',                              short:'Sheffield Doc/Fest',        org:'Sheffield Doc/Fest',                type:'festival', format:'documentary',  phaseType:'event',    date:'2026-06-05', endDate:'2026-06-10',  approx:true,  desc:'UK documentary festival with MeetMarket pitching forum.',                                    notes:null,                                                                                         url:'https://sheffdocfest.com',                               tags:['international'] },
+
+  // ── NEW EVENTS ───────────────────────────────────────────
+  { id:'primetime',        name:'Prime Time / CMPA Annual Conference',              short:'Prime Time CMPA',           org:'CMPA',                              type:'market',   format:'both',         phaseType:'event',    date:'2026-02-04', endDate:'2026-02-06',  approx:true,  desc:"CMPA's annual broadcasting and media conference in Ottawa. Connects producers with broadcasters, distributors, and financiers.", notes:null,                                                                                         url:'https://cmpa.ca/prime-time',                             tags:['national'] },
+  { id:'alff-sub',         name:'Available Light Film Festival — Submissions Open', short:'ALFF Open Subs',            org:'Available Light Film Festival',     type:'festival', format:'both',         phaseType:'opens',    date:'2026-05-01', endDate:null,          approx:true,  desc:'Submissions open for the Whitehorse, Yukon festival celebrating Canadian and northern filmmaking.',                           notes:null,                                                                                         url:'https://availablelightfilmfestival.ca',                  tags:['national'] },
+  { id:'alff-fest',        name:'Available Light Film Festival',                    short:'ALFF',                      org:'Available Light Film Festival',     type:'festival', format:'both',         phaseType:'event',    date:'2026-11-12', endDate:'2026-11-15',  approx:true,  desc:'Whitehorse, Yukon. Celebrates Canadian and northern filmmaking with strong industry programming.',                            notes:null,                                                                                         url:'https://availablelightfilmfestival.ca',                  tags:['national'] },
+  { id:'doc-nw-mixer',     name:'DOC Northwest / BC — Hot Docs & DOXA Yearly Mixer', short:'DOC NW Yearly Mixer',     org:'DOC Northwest / DOC BC',            type:'market',   format:'documentary',  phaseType:'event',    date:'2026-04-25', endDate:null,          approx:true,  desc:'Annual DOC Northwest and DOC BC mixer during the Hot Docs festival. Networking for western Canadian documentary filmmakers.',  notes:null,                                                                                         url:'https://docbc.ca',                                       tags:['bc','national'] },
+  { id:'telus-originals',  name:'TELUS Originals — Pitch Intake Window',            short:'TELUS Originals',           org:'TELUS',                             type:'funding',  format:'both',         phaseType:'window',   date:'2026-06-01', endDate:'2026-06-20',  approx:false, desc:'TELUS Originals annual pitch intake for digital and broadcast content. Window runs June 1–20.',                               notes:'Confirm eligibility and guidelines at telus.com/originals.',                                 url:'https://telus.com',                                      tags:['national'] },
+  { id:'bell-slate',       name:'Bell Fund — Slate Development',                    short:'Bell Fund Slate Dev',       org:'Bell Fund',                         type:'funding',  format:'scripted',     phaseType:'deadline', date:'2026-06-02', endDate:null,          approx:false, desc:'Bell Fund Slate Development program. Supports English-language digital media and broadcast content slates.',                  notes:null,                                                                                         url:'https://bellfund.ca',                                    tags:['national'] },
+  { id:'cmpa-diverse',     name:'CMPA — Diverse Mentorship Programs',               short:'CMPA Diverse Mentorship',   org:'CMPA',                              type:'funding',  format:'both',         phaseType:'deadline', date:'2026-06-12', endDate:null,          approx:false, desc:'CMPA diverse mentorship applications. Supports underrepresented producers in the Canadian screen industry.',                  notes:null,                                                                                         url:'https://cmpa.ca',                                        tags:['national'] },
+  { id:'cmf-digital',      name:'CMF Digital Creators Pilot Program',               short:'CMF Digital Creators',      org:'Canada Media Fund',                 type:'funding',  format:'both',         phaseType:'window',   date:'2026-09-15', endDate:'2026-10-01',  approx:false, desc:'CMF pilot program for digital creators. Applications open Sept 15, close Oct 1.',                                            notes:'Confirm current guidelines at cmf-fmc.ca.',                                                  url:'https://cmf-fmc.ca',                                     tags:['national'] },
+  { id:'cmf-dev-redev',    name:'CMF Development + Reactivation — Back/Reactivated', short:'CMF Dev + Re-Dev',         org:'Canada Media Fund',                 type:'funding',  format:'both',         phaseType:'window',   date:'2026-09-15', endDate:'2026-12-08',  approx:false, desc:'CMF Development and Reactivation programs. Broadcaster-triggered. Window opens Sept 15, end of envelopes Dec 8.',            notes:null,                                                                                         url:'https://cmf-fmc.ca',                                     tags:['national'] },
+  { id:'podcast-movement', name:'Podcast Movement — New York',                      short:'Podcast Movement NY',       org:'Podcast Movement',                  type:'market',   format:'both',         phaseType:'event',    date:'2026-09-17', endDate:'2026-09-18',  approx:false, desc:'Major podcasting industry conference in New York. Relevant for audio-visual hybrid and podcast-to-screen projects.',          notes:null,                                                                                         url:'https://podcastmovement.com',                            tags:['international'] },
+  { id:'knowledge-mixer',  name:'Knowledge Mixer — BC Film Industry',               short:'Knowledge Mixer',           org:'Creative BC',                       type:'market',   format:'both',         phaseType:'event',    date:'2026-10-20', endDate:null,          approx:true,  desc:'Annual BC film industry networking event. Free to attend. Connects filmmakers, producers, and industry professionals.',       notes:'Free event — check creativebc.com for date confirmation.',                                   url:'https://creativebc.com',                                 tags:['bc'] },
+  { id:'rogers-doc',       name:'Rogers Documentary Fund',                          short:'Rogers Doc Fund',           org:'Rogers Broadcasting',               type:'funding',  format:'documentary',  phaseType:'deadline', date:'2026-10-15', endDate:null,          approx:true,  desc:'Rogers Broadcasting documentary fund supporting Canadian documentary production for broadcast.',                               notes:null,                                                                                         url:'https://rogersdocumentaryfund.ca',                       tags:['national'] },
+  { id:'rogers-cable',     name:'Rogers Cable Network Fund',                        short:'Rogers Cable Fund',         org:'Rogers Broadcasting',               type:'funding',  format:'both',         phaseType:'deadline', date:'2026-11-01', endDate:null,          approx:true,  desc:'Rogers Cable Network Fund for Canadian independent production. Broadcaster-triggered. Multiple intakes.',                    notes:null,                                                                                         url:'https://rogerscablefund.ca',                             tags:['national'] },
+  { id:'iso-prod',         name:'Indigenous Screen Office — Production & Development', short:'ISO Production',         org:'Indigenous Screen Office',          type:'funding',  format:'both',         phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'ISO funding programs for production and development by Indigenous filmmakers. Multiple intakes per year.',                   notes:'ISO does not publish fixed deadlines — check indigenousscreenoffice.ca for current calls.',   url:'https://indigenousscreenoffice.ca',                      tags:['national'] },
+  { id:'cbc-dev',          name:'Creative BC — Development Fund',                   short:'Creative BC Dev Fund',      org:'Creative BC',                       type:'funding',  format:'both',         phaseType:'deadline', date:'2026-09-01', endDate:null,          approx:true,  desc:'BC-based development funding for film and TV. Multiple rounds per year — check creativebc.com for the current open round.',  notes:null,                                                                                         url:'https://creativebc.com/funding/development',             tags:['bc'] },
+  { id:'doc-audience-agm', name:'DOC BC — Audience & AGM',                          short:'DOC BC AGM',                org:'DOC BC',                            type:'market',   format:'documentary',  phaseType:'event',    date:'2026-10-15', endDate:null,          approx:true,  desc:'Documentary Organization of Canada BC chapter Annual General Meeting and audience awards.',                                  notes:null,                                                                                         url:'https://docbc.ca',                                       tags:['bc'] },
+  { id:'dword-forum',      name:'D-WORD / DOC ORG BC Forum',                        short:'D-WORD BC Forum',           org:'D-WORD / DOC BC',                   type:'market',   format:'documentary',  phaseType:'event',    date:'2026-01-20', endDate:null,          approx:true,  desc:'Online documentary community forum with BC-specific programming. Connects documentary filmmakers globally.',                  notes:null,                                                                                         url:'https://d-word.com',                                     tags:['bc','national'] },
+  { id:'tf-market',        name:'Telefilm Market Attendance Program',               short:'Telefilm Market',           org:'Telefilm Canada',                   type:'funding',  format:'both',         phaseType:null,       date:null,         endDate:null,          approx:true,  desc:'Telefilm funding to attend international markets: Cannes, AFM, Berlinale, TIFF industry. Broadcaster co-applicant required.', notes:'Rolling / market-triggered. Apply ~6–8 weeks before the target market.',                   url:'https://telefilm.ca/en/funding/market-attendance',       tags:['national'] },
 ];
 
 // ── APP STATE ──────────────────────────────────────────────
@@ -674,12 +695,18 @@ function buildChip(ev, role) {
   const regP    = ev.tags.includes('bc')          ?`<span class="cpill bc">BC</span>`
                 : ev.tags.includes('international')?`<span class="cpill intl">Intl</span>` : '';
   chip.innerHTML = `
+    <button class="chip-edit-btn" title="Edit">✎</button>
     <div class="chip-phase${dead?' is-deadline':''}">${pLabel}</div>
     <div class="chip-name">${ev.short}</div>
     <div class="chip-meta">
       <span class="chip-date">${dateStr}${endStr}</span>
       ${fmtP}${regP}${ev.approx?'<span class="cpill approx">~</span>':''}
     </div>`;
+  chip.querySelector('.chip-edit-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    selectedId = ev.id;
+    window.openEditModal();
+  });
   chip.addEventListener('click', () => showDetail(ev.id));
   return chip;
 }
@@ -821,7 +848,7 @@ window.saveEdit = async function() {
     notes:     document.getElementById('f-notes').value.trim()||null,
     url:       document.getElementById('f-url').value.trim(),
     tags:      [...document.querySelectorAll('[name="f-tags"]:checked')].map(c=>c.value),
-    custom:    true,
+    custom:    editingId ? (events.find(e=>e.id===editingId)?.custom || false) : true,
   };
   setLoading(true);
   try {
@@ -848,34 +875,24 @@ window.deleteCurrentEvent = async function() {
   finally { setLoading(false); }
 };
 
-// ── EXPORT / IMPORT ───────────────────────────────────────
-window.exportJSON = function() {
-  const blob = new Blob([JSON.stringify(events, null, 2)], {type:'application/json'});
+// ── EXPORT CSV ────────────────────────────────────────────
+window.exportCSV = function() {
+  const headers = ['Name','Short Name','Org','Type','Format','Schedule','Date','End Date','Approximate','Tags','Description','Notes','URL'];
+  const esc = v => `"${String(v||'').replace(/"/g,'""')}"`;
+  const rows = events.map(ev => [
+    ev.name, ev.short, ev.org, ev.type, ev.format,
+    ev.phaseType||'rolling',
+    ev.date||'', ev.endDate||'',
+    ev.approx?'Yes':'No',
+    (ev.tags||[]).join('; '),
+    ev.desc||'', ev.notes||'', ev.url||''
+  ].map(esc).join(','));
+  const csv = [headers.map(esc).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download=`film-calendar-${currentYear}.json`; a.click();
-};
-
-window.importJSON = function() {
-  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
-  inp.onchange = async e => {
-    const r = new FileReader();
-    r.onload = async re => {
-      try {
-        const arr = JSON.parse(re.result);
-        if (!Array.isArray(arr)) throw new Error('Expected JSON array');
-        setLoading(true);
-        const batch = writeBatch(db);
-        arr.forEach(ev => batch.set(doc(db, COL, ev.id), ev));
-        await batch.commit();
-        events = arr;
-        toast(`Imported ${arr.length} events.`);
-        renderYear();
-      } catch(err) { toast('Import failed: '+err.message, true); }
-      finally { setLoading(false); }
-    };
-    r.readAsText(e.target.files[0]);
-  };
-  inp.click();
+  a.href = URL.createObjectURL(blob);
+  a.download = `film-calendar-${currentYear}.csv`;
+  a.click();
 };
 
 // ── FILTERS & YEAR NAV ────────────────────────────────────
